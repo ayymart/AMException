@@ -1,5 +1,7 @@
 /*
- * This header introduces the following macros:
+ * This header introduces the following identifiers:
+ *
+ *  Macros:
  *      -   AMEXCEPTION_INIT
  *      -   TRY
  *      -   CATCH
@@ -7,12 +9,13 @@
  *      -   THROW
  *      -   RETHROW
  *
- * It also introduces the following identifiers:
- *      -   Exception
- *      -   struct JumpStack
- *      -   JumpStack
- *      -   JumpStackPop
- *      -   JumpStackPush
+ *  Structs:
+ *      -   _JumpStack
+ *
+ *  Global Variables:
+ *      -   _jumpStackPtr
+ *
+ *  Local Variables (within the TRY ... END_TRY block)
  *      -   _jumpStack
  */
 
@@ -21,7 +24,6 @@
 #define AMEXCEPTION_AMEXCEPTION_H
 
 
-#include <assert.h>
 #include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,65 +33,46 @@
 #endif
 
 // line and file are only valid for num != 0
-typedef struct {
+struct _JumpStack {
+    jmp_buf buf;
+    struct _JumpStack *prev;
     int num;
     int line;
     const char *file;
-} Exception;
+};
 
-typedef struct JumpStack {
-    jmp_buf buf;
-    struct JumpStack *prev;
-    Exception exception;
-} JumpStack;
+#define AMEXCEPTION_INIT _Thread_local struct _JumpStack *_jumpStackPtr
 
-#define AMEXCEPTION_INIT _Thread_local JumpStack *_jumpStack
-
-extern _Thread_local JumpStack *_jumpStack;  // is _Thread_local necessary here?
-
-// TODO make this accept an out-param instead of returning a struct by value?
-static inline Exception JumpStackPop(void) {
-    // this function should only be called in END_TRY following a push in TRY
-    assert(_jumpStack != NULL);
-    Exception retval = _jumpStack->exception;
-    JumpStack *temp = _jumpStack->prev;
-    free(_jumpStack);
-    _jumpStack = temp;
-    return retval;
-}
-
-static inline void JumpStackPush(void) {
-    JumpStack *temp = _jumpStack;
-    _jumpStack = malloc(sizeof(JumpStack));
-    _jumpStack->exception.num = 0;
-    _jumpStack->prev = temp;
-}
+extern _Thread_local struct _JumpStack *_jumpStackPtr;
 
 #define RETHROW(E, LINE, FILE)                                                                      \
     {                                                                                               \
-        if (_jumpStack == NULL) {                                                                   \
+        if (_jumpStackPtr == NULL) {                                                                \
             fprintf(stderr, "Unhandled exception %d at line %d of %s\n", E, LINE, FILE);            \
             exit(EXIT_FAILURE);                                                                     \
         }                                                                                           \
-        _jumpStack->exception.num = E;                                                              \
-        _jumpStack->exception.line = LINE;                                                          \
-        _jumpStack->exception.file = FILE;                                                          \
-        longjmp(_jumpStack->buf, E);                                                                \
+        _jumpStackPtr->num = E;                                                                     \
+        _jumpStackPtr->line = LINE;                                                                 \
+        _jumpStackPtr->file = FILE;                                                                 \
+        longjmp(_jumpStackPtr->buf, E);                                                             \
     }
 
 #define THROW(E) RETHROW (E, __LINE__, __FILE__)
 
 #define TRY                                                                                         \
     do {                                                                                            \
-        JumpStackPush();                                                                            \
-        switch (setjmp(_jumpStack->buf)) {                                                          \
+        struct _JumpStack _jumpStack;       /* declare a new jump stack */                          \
+        _jumpStack.num = 0;                 /* will be set if an exception is thrown */             \
+        _jumpStack.prev = _jumpStackPtr;    /* store the address of the previous jump stack */      \
+        _jumpStackPtr = &_jumpStack;        /* set this as the current jump stack */                \
+        switch (setjmp(_jumpStack.buf)) {                                                           \
             case 0:                                                                                 \
             while (1) {
 
 #define CATCH(E) _Static_assert(E != 0, "0 cannot be thrown");                                      \
                 break;                                                                              \
             case E:                                                                                 \
-                _jumpStack->exception.num = 0;
+                _jumpStack.num = 0;         /* note that the exception has been handled */
 
 #define FINALLY                                                                                     \
                 break;                                                                              \
@@ -101,8 +84,10 @@ static inline void JumpStackPush(void) {
             }                                                                                       \
         }                                                                                           \
         {                                                                                           \
-            Exception e = JumpStackPop();                                                           \
-            if (e.num != 0) RETHROW (e.num, e.line, e.file);                                        \
+            /* restore the previous jump stack */                                                   \
+            /* if there was an unhandled exception, rethrow it */                                   \
+            _jumpStackPtr = _jumpStack.prev;                                                        \
+            if (_jumpStack.num != 0) RETHROW (_jumpStack.num, _jumpStack.line, _jumpStack.file);    \
         }                                                                                           \
     } while (0);
 
