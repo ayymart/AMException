@@ -34,11 +34,11 @@
 
 // line and file are only valid for num != 0
 struct _JumpStack {
-    jmp_buf buf;
-    struct _JumpStack *prev;
-    int num;
-    int line;
-    const char *file;
+    jmp_buf buf;                // for use with setjmp and longjmp
+    struct _JumpStack *prev;    // previous value of the global pointer
+    int num;                    // set to the thrown value, if != 0 during END_TRY the exception is rethrown
+    int line;                   // location of originating THROW
+    const char *file;           // ""
 };
 
 #define AMEXCEPTION_INIT _Thread_local struct _JumpStack *_jumpStackPtr
@@ -66,10 +66,14 @@ extern _Thread_local struct _JumpStack *_jumpStackPtr;
         _jumpStack.prev = _jumpStackPtr;    /* store the address of the previous jump stack */      \
         _jumpStackPtr = &_jumpStack;        /* set this as the current jump stack */                \
         switch (setjmp(_jumpStack.buf)) {                                                           \
+            /* setjmp returns 0 on first call, so case 0 represents TRY { } */                      \
             case 0:                                                                                 \
+            /* loop encompasses every switch case except default, */                                \
+            /* allowing jumping to FINALLY using break statement */                                 \
             while (1) {
 
 #define CATCH(E) _Static_assert(E != 0, "0 cannot be thrown");                                      \
+                /* break out of TRY or previous CATCH and go to FINALLY */                          \
                 break;                                                                              \
             case E:                                                                                 \
                 _jumpStack.num = 0;         /* note that the exception has been handled */
