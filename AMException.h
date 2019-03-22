@@ -1,32 +1,8 @@
-/*
- * This header introduces the following identifiers:
- *
- *  Macros:
- *      -   AMEXCEPTION_INIT
- *      -   TRY
- *      -   CATCH
- *      -   FINALLY
- *      -   THROW
- *      -   RETHROW
- *
- *  Structs:
- *      -   _JumpStack
- *
- *  Global Variables:
- *      -   _jumpStackPtr
- *
- *  Local Variables (within the TRY ... END_TRY block)
- *      -   _jumpStack
- */
-
-
-#ifndef AMEXCEPTION_AMEXCEPTION_H
-#define AMEXCEPTION_AMEXCEPTION_H
+#ifndef AMEXCEPTION_H
+#define AMEXCEPTION_H
 
 
 #include <setjmp.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #if defined(TRY) || defined(CATCH) || defined(FINALLY) || defined(THROW) || defined(RETHROW)
     #error "AMException: One of the exception macros is already defined"
@@ -41,23 +17,11 @@ struct _JumpStack {
     const char *file;           // ""
 };
 
-#define AMEXCEPTION_INIT _Thread_local struct _JumpStack *_jumpStackPtr
-
 extern _Thread_local struct _JumpStack *_jumpStackPtr;
 
-#define RETHROW(E, LINE, FILE)                                                                      \
-    {                                                                                               \
-        if (_jumpStackPtr == NULL) {                                                                \
-            fprintf(stderr, "Unhandled exception %d at line %d of %s\n", E, LINE, FILE);            \
-            exit(EXIT_FAILURE);                                                                     \
-        }                                                                                           \
-        _jumpStackPtr->num = E;                                                                     \
-        _jumpStackPtr->line = LINE;                                                                 \
-        _jumpStackPtr->file = FILE;                                                                 \
-        longjmp(_jumpStackPtr->buf, E);                                                             \
-    }
+void AMExceptionThrow(int num, int line, const char *file);
 
-#define THROW(E) RETHROW (E, __LINE__, __FILE__)
+#define THROW(E) AMExceptionThrow(E, __LINE__, __FILE__);
 
 #define TRY                                                                                         \
     do {                                                                                            \
@@ -67,33 +31,27 @@ extern _Thread_local struct _JumpStack *_jumpStackPtr;
         _jumpStackPtr = &_jumpStack;        /* set this as the current jump stack */                \
         switch (setjmp(_jumpStack.buf)) {                                                           \
             /* setjmp returns 0 on first call, so case 0 represents TRY { } */                      \
-            case 0:                                                                                 \
-            /* loop encompasses every switch case except default, */                                \
-            /* allowing jumping to FINALLY using break statement */                                 \
-            while (1) {
+            case 0:
 
 #define CATCH(E) _Static_assert(E != 0, "0 cannot be thrown");                                      \
-                /* break out of TRY or previous CATCH and go to FINALLY */                          \
                 break;                                                                              \
             case E:                                                                                 \
-                _jumpStack.num = 0;         /* note that the exception has been handled */
+                _jumpStack.num = 0;
+
+#define CATCH_ALL                                                                                   \
+                break;                                                                              \
+            default:                                                                                \
+                _jumpStack.num = 0;
 
 #define FINALLY                                                                                     \
-                break;                                                                              \
-            }                                                                                       \
-            default: {
+        }                                                                                           \
+        {
 
 #define END_TRY                                                                                     \
-                break;                                                                              \
-            }                                                                                       \
         }                                                                                           \
-        {                                                                                           \
-            /* restore the previous jump stack */                                                   \
-            /* if there was an unhandled exception, rethrow it */                                   \
-            _jumpStackPtr = _jumpStack.prev;                                                        \
-            if (_jumpStack.num != 0) RETHROW (_jumpStack.num, _jumpStack.line, _jumpStack.file);    \
-        }                                                                                           \
-    } while (0);
+        _jumpStackPtr = _jumpStack.prev;                                                            \
+        if (_jumpStack.num != 0) AMExceptionThrow(_jumpStack.num, _jumpStack.line, _jumpStack.file);\
+    } while (0)
 
 
-#endif //AMEXCEPTION_AMEXCEPTION_H
+#endif
