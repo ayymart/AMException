@@ -5,10 +5,21 @@ void func(void) {
     THROW (1);
 }
 
+void func2(void) {
+    TRY {
+        puts("inner try");
+        func();
+    } CATCH (2) {
+        puts("bad");
+    } FINALLY {
+        puts("finally");
+    } END_TRY;
+}
+
 int main(void) {
     TRY {
         puts("try");
-        func();
+        func2();
         puts("bad");
     } CATCH (1) {
         puts("catch 1");
@@ -33,6 +44,8 @@ int main(void) {
     } FINALLY {
         puts("finally");
     } END_TRY;
+
+    puts("This should not happen");
 
     return 0;
 }
