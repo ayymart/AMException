@@ -8,4 +8,4 @@ set(sources test.c)
 
 add_library(AMException AMException.h AMException.c)
 add_executable(AMExceptionTest ${sources} ${headers})
-target_link_libraries(AMExceptionTest PUBLIC AMException)
+target_link_libraries(AMExceptionTest AMException)

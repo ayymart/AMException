@@ -30,10 +30,12 @@ _Noreturn void AMExceptionThrow();
 extern _Thread_local struct AMException AMException;
 
 #define AMEXCEPTIONTHROW(E, LINE, FILE)                                                             \
-    AMException.num = E;                                                                            \
-    AMException.line = LINE;                                                                        \
-    AMException.file = FILE;                                                                        \
-    AMExceptionThrow();
+    do {                                                                                            \
+        AMException.num = E;                                                                        \
+        AMException.line = LINE;                                                                    \
+        AMException.file = FILE;                                                                    \
+        AMExceptionThrow();                                                                         \
+    } while (0)
 
 #define THROW(E) AMEXCEPTIONTHROW(E, __LINE__, __FILE__)
 
