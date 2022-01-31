@@ -21,23 +21,25 @@ struct AMException {
     // if !0 when END_TRY is reached, the exception is rethrown
     int num;
 
+    void *arg;
     int line;
     const char *file;
 };
 
-_Noreturn void AMExceptionThrow();
+_Noreturn void AMExceptionThrow(void);
 
 extern _Thread_local struct AMException AMException;
 
-#define AMEXCEPTIONTHROW(E, LINE, FILE)                                                             \
+#define THROW_ARG(NUM, ARG)                                                                         \
     do {                                                                                            \
-        AMException.num = E;                                                                        \
-        AMException.line = LINE;                                                                    \
-        AMException.file = FILE;                                                                    \
+        AMException.num = NUM;                                                                      \
+        AMException.arg = ARG;                                                                      \
+        AMException.line = __LINE__;                                                                \
+        AMException.file = __FILE__;                                                                \
         AMExceptionThrow();                                                                         \
     } while (0)
 
-#define THROW(E) AMEXCEPTIONTHROW(E, __LINE__, __FILE__)
+#define THROW(NUM) THROW_ARG(NUM, NULL)
 
 #define TRY                                                                                         \
     do {                                                                                            \
@@ -62,7 +64,7 @@ extern _Thread_local struct AMException AMException;
         }                                                                                           \
         {
 
-#define END_TRY                                                                                     \
+#define TRY_END                                                                                     \
         }                                                                                           \
         if (AMException.num != 0) AMExceptionThrow();                                               \
     } while (0)

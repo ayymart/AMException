@@ -8,7 +8,7 @@ _Noreturn void AMExceptionThrow() {
     // if there is no active try block to jump to, print a message and exit
     if (AMException.stack == NULL) {
         fprintf(stderr,
-                "AMException %s:%d: unhandled exception %d\n",
+                "%s:%d: unhandled exception: %d\n",
                 AMException.file,
                 AMException.line,
                 AMException.num);
