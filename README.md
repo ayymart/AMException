@@ -1,5 +1,5 @@
 # AMException
-Header-only C exception handling macros using setjmp / longjmp. Aims to behave as one would expect coming from a language with native exception support.  
+C exception handling macros using setjmp / longjmp. Aims to behave as one would expect coming from a language with native exception support.  
 Inspired by http://groups.di.unipi.it/~nids/docs/longjump_try_trow_catch.html, with improvements (bolded below).
 
 Supports:
