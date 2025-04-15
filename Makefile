@@ -1,10 +1,14 @@
 .PHONY: all
 all: example example2
 
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
 .PHONY: example
-example:
-	$(CC) -o example AMException.c example.c
+example: AMException.o example.o
+	$(CC) -o example AMException.o example.o
 
 .PHONY: example2
-example2:
-	$(CC) -o example2 AMException.c example2.c
+example2: AMException.o example2.o
+	$(CC) -o example2 AMException.o example2.o
+

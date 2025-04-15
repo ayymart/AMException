@@ -4,7 +4,9 @@
 
 _Thread_local struct AMException AMException;
 
-_Noreturn void AMExceptionThrow() {
+// This function is variadic as a hack to allow "overloading",
+// whereby the user can choose whether to provide `arg`.
+_Noreturn void AMExceptionThrow(int num, void *arg, ...) {
     // if there is no active try block to jump to, print a message and exit
     if (AMException.stack == NULL) {
         fprintf(stderr,
@@ -15,7 +17,10 @@ _Noreturn void AMExceptionThrow() {
         exit(EXIT_FAILURE);
     }
 
+    AMException.num = num;
+    AMException.arg = arg;
     jmp_buf *buf = &AMException.stack->buf;
     AMException.stack = AMException.stack->prev;
     longjmp(*buf, AMException.num);
 }
+

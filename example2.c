@@ -18,7 +18,7 @@ int checked_divide(int numerator, int denominator) {
         MyException *arg = malloc(sizeof(MyException));
         arg->msg = "Divide by zero. Numerator=%d.\n";
         arg->numerator = numerator;
-        THROW_ARG(MY_EXCEPTION, (void*)arg);
+        THROW (MY_EXCEPTION, (void*)arg);
     }
     return numerator / denominator;
 }
@@ -26,7 +26,7 @@ int checked_divide(int numerator, int denominator) {
 int main() {
     TRY {
         checked_divide(1, 0);
-    } CATCH(MY_EXCEPTION) {
+    } CATCH (MY_EXCEPTION) {
         MyException *arg = (MyException*)AMException.arg;
         printf(arg->msg, arg->numerator);
         free(arg);

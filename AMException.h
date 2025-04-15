@@ -26,20 +26,16 @@ struct AMException {
     const char *file;
 };
 
-_Noreturn void AMExceptionThrow(void);
+_Noreturn void AMExceptionThrow(int num, void *arg, ...);
 
 extern _Thread_local struct AMException AMException;
 
-#define THROW_ARG(NUM, ARG)                                                                         \
+#define THROW(NUM, ...)                                                                             \
     do {                                                                                            \
-        AMException.num = NUM;                                                                      \
-        AMException.arg = ARG;                                                                      \
         AMException.line = __LINE__;                                                                \
         AMException.file = __FILE__;                                                                \
-        AMExceptionThrow();                                                                         \
+        AMExceptionThrow(NUM, __VA_ARGS__ __VA_OPT__(,) NULL);                                      \
     } while (0)
-
-#define THROW(NUM) THROW_ARG(NUM, NULL)
 
 #define TRY                                                                                         \
     do {                                                                                            \
@@ -66,8 +62,9 @@ extern _Thread_local struct AMException AMException;
 
 #define TRY_END                                                                                     \
         }                                                                                           \
-        if (AMException.num != 0) AMExceptionThrow();                                               \
+        if (AMException.num != 0) AMExceptionThrow(AMException.num, AMException.arg);               \
     } while (0)
 
 
 #endif
+

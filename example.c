@@ -19,7 +19,7 @@ void func2() {
 
 void func3() {
     puts("throwing 1");
-    THROW_ARG (1, (void*)"Hello from func3!");
+    THROW (1, (void*)"Hello from func3!");
 }
 
 int main() {

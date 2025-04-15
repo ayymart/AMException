@@ -4,7 +4,7 @@ Inspired by http://groups.di.unipi.it/~nids/docs/longjump_try_trow_catch.html, w
 
 Supports:
 - Differentiating between exception types with an integer code
-- **Providing  arbitrary exception data with a void pointer (like `pthread`), available as `AMException.arg`**
+- **Providing  arbitrary exception data, available as `AMException.arg`**
 - **A default `CATCH_ALL` block (the exception number is available as `AMException.num`)**
 - A `FINALLY` block that is always executed, even if an exception occurred
 
@@ -59,7 +59,7 @@ Providing arbitrary exception data:
 #include "AMException.h"
 int main() {
     TRY {
-        THROW_ARG(1, (void*)"Exception #1 was thrown!");
+        THROW(1, (void*)"Exception #1 was thrown!");
     } CATCH(1) {
         puts((char*)AMException.arg);
         // Exception #1 was thrown!
